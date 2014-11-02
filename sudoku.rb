@@ -1,9 +1,32 @@
-#File parser and validator
-file = File.open("input.csv")
+#Parse the command line arguments
+ARGV.each_with_index do |a,i|
+	if a == '-v'
+		$verbose=true
+	end
+	if a== '-n' && ARGV[i+1] != nil
+		$n=ARGV[i+1].to_i
+	end
+end
+
+puts "This is the sudoku solver"
+if ARGV.length ==0
+	puts "Type FILENAME -v -n INTEGER"
+	puts "-v -n INTEGER are options"
+	puts "Example: ruby sudoku.rb input.csv -v -n 10000"
+	exit
+end
+if File.exists?(ARGV[0])
+	file = File.open(ARGV[0])
+else
+	puts "There is no \"" + ARGV[0] + "\" file"
+	exit
+end
 $baset=[]
-valid_file = true
+
+#File parser and validator
 #Converts the input csv file to an 81 length integer array.
 #Checks if the file is valid format wise.
+valid_file = true
 file.each_with_index do |line, i|
 	line.gsub!("\n","")
 	a=line.split(",").map {|s| s.to_i}
@@ -53,14 +76,7 @@ $base = $baset.flatten
 # 		3,5,9,0,2,8,4,1,7,
 # 		8,0,0,9,0,0,5,2,6]
 
-puts "This is the sudoku solver"
-puts "Type v for verbose"
-input = gets.chomp
-if input == 'v'
-	$verbose = true 
-else
-	$verbose = false
-end
+
 
 $start_time=Time.now
 
@@ -70,7 +86,7 @@ $start_time=Time.now
 # according to the amount of unknowns of rows
 # ideally make a good fit for this.
 
-$n = 1000
+#$n = 1000
 # Every element is a chromosome
 $population =[]
 #Holds the fitness of each chromosome
