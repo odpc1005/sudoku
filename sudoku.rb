@@ -9,7 +9,7 @@ puts "This is the SUDOKU solver"
 if ARGV.length ==0
 	puts "Type FILENAME -v "
 	puts "-v is verbose option"
-	puts "Example: ruby sudoku.rb input.csv -v -n 10000"
+	puts "Example: ruby sudoku.rb input.csv -v"
 	exit
 end
 if File.exists?(ARGV[0])
@@ -18,23 +18,25 @@ else
 	puts "There is no \"" + ARGV[0] + "\" file"
 	exit
 end
-$baset=[]
 
-#File parser and validator
+#####################################################################
+#####################File parser and validator########################
 #Converts the input csv file to an 81 length integer array.
-#Checks if the file is valid format wise.
+#Checks if the file has a valid format.
+
+$original_puzzle=[]
 valid_file = true
 file.each_with_index do |line, i|
 	line.gsub!("\n","")
 	a=line.split(",").map {|s| s.to_i}
 	if a.length > 9
-		puts "Check line: " + i.to_s + " too many columns"
+		puts "Check line: " + i.to_s + " has more than allowed columns"
 		valid_file = false
 		break
 	end
 	a.each_with_index do |e, j|
 		# e is an element of line
-		#Check elements are in range
+		#Check elements are in range 0 to 9
 		if  e.to_i < 0 || e.to_i > 9 
 			puts "Check element row: " + i.to_s + " column: " + j.to_s 
  			valid_file=false
@@ -54,42 +56,29 @@ file.each_with_index do |line, i|
 		puts "File has more than allowed rows"
 		valid_file = false
 	end
-	$baset<<a
+	$original_puzzle<<a
 end
 if !valid_file
 	puts "Please check the input file and try again"
 	abort
 end 
 
+#variable to measure the time for making the calculations
 $start_time=Time.now
-
-
 ################  GLOBAL VARIABLES ###################
 
-$gene =[]
-$base = $baset.flatten
-$baset=$base.dup
+# puzzle starts with the same data as original_puzzle but will be completed during
+# the execution of the algorithm
+$puzzle = $original_puzzle.flatten
+$original_puzzle=$puzzle.dup
+########
+#Is a hash with key equal to the position of an unknown (zero) and value equal
+# to 
 $possibilities={}
 
 ########### FUNCTION IMPLEMENTATIONS #############
-def calculate_fit
-	$best_fit=0
-	$population.each_with_index do |e, i|
-		#puts "calculating fit of "
-		#puts pretty(e)
-		current_fitness=fitness(e)
-		#puts "fitness is " + current_fitness.to_s
-		if current_fitness > $best_fit
-			$best_fit = current_fitness
-			$solution = e
-			puts pretty(e)
-			puts "Best fit: " + $best_fit.to_s
-			puts ""
-		end
-		$population_fitness[i] = current_fitness
-	end
-end
 
+# Returns the amount of zeros left in the sudoku
 def calculate_unknowns
 	length=0
 	$possibilities.each do |k, v|
@@ -98,7 +87,7 @@ def calculate_unknowns
 	length
 end
 
-#returns an array corresponding to column i
+#returns an array corresponding to column i (0..8)
 def col(i,arr)
 	result =[]
 	(0..8).each do |j|
@@ -107,38 +96,21 @@ def col(i,arr)
 	result
 end
 
-#returns an array corresponding submatrix k
-def mini(k, arr)
-	#find the index
-	first=k/3*27+(k%3)*3
-	second=first+9
-	third=first+18
-	result=[]
-	result=arr[first..(first+2)]+arr[second..(second+2)]+arr[third..(third+2)]
-end
-
-#change th 
-def create_chromosome
-	#creates a valid chromosome
-	chromosome=[]
-	(0..8).each do |r|
-
-	end
-
-	# $gene.each_with_index do |g, i|
-	# 	scrambled=scramble(g)
-	# 	full_gene=merge(row(i,$base),scrambled)
-	# 	chromosome += full_gene
-	# end
-	puts chromosome.to_s if $verbose
-	chromosome
-end
-
-def backtrace
+def backtracking
+	# hash that holds the current candidate key:depth value:number
+	# Example {0=>3, 1=>6} for a sudoku with only two unknowns
 	$sol={}
-	#holds the index of the current option 
+	
+	#array where element i holds the current option index at depth i 
+	# Example [0,1] for a sudoku with only two unknowns, therefore only two options
+	# per unknown 
 	depth_to_current_option=[]
+	
+	#array where element i holds the index in the original array 
+	# Example [35, 40] it transforms depth which is secuential to the actual index
+	# in the original array (puzzle)
 	$depth_to_possibility_index=[]
+
 	$possibilities.each_with_index do |p,i|
 		depth_to_current_option[i]=0
 		$depth_to_possibility_index[i]=p[0]
@@ -155,37 +127,38 @@ def backtrace
 	# last option, try next option
 
 	while depth < possibilities_length && depth >= 0
+		# stores array with all the possible values at depth
 		values=$possibilities[$depth_to_possibility_index[depth]]
+		#stores the current option chosen at depth
 		option_index=depth_to_current_option[depth]
 		down=false
 		up=false
 		puts "Depth " + depth.to_s if $verbose
 		puts "Max progress " + (max_depth*100/possibilities_length).to_s
 		while option_index < values.length && !down && !up
-			# puts "Option index " + option_index.to_s
-			# puts "options " + values.length.to_s
-			
+			# Check if the current option at depth is valid with the solution
+			# traced so far
 			if valid(depth,values[option_index],$sol)
+				# store the new value en the current solution
 				$sol[depth]=values[option_index]
+				# update the current option in depth
 				depth_to_current_option[depth]=option_index
+				#increase depth
 				depth += 1
 				if depth > max_depth
 					max_depth = depth
 				end
 				puts "going down (deeper)" if $verbose
-				# pretty($base)
-				# puts "solution "
-				# puts $sol.to_s
-				# puts "depth option index"
-				# puts depth_to_current_option.to_s
-				down == true
+				down = true
 				break
 			end
 			puts "going to next option" if $verbose
+			# if not valid go to next option
 			option_index+=1	
+			# if there are no more options then have to backtrack
+			# restore option to zero, delete solution at depth and decrease depth 
 			if option_index == values.length
 				puts "No option available going up" if $verbose
-				puts "-------------------" if $verbose
 				depth_to_current_option[depth]=0
 				$sol.delete(depth)
 				depth -= 1
@@ -193,30 +166,38 @@ def backtrace
 			end	
 		end	
 	end
-	ram = insert($base,$sol)
-	pretty_color(ram)
-	puts $sol.to_s
+	if depth == -1
+		puts "Wrong sudoku!!! please check input file"
+		abort
+	else
+		#Found a correct solution!!
+		puts ""
+		puts "THE SOLUTION"
+		ram = merge($puzzle,$sol)
+		pretty(ram)
+		puts "solution hash key:depth value: number" if $verbose
+		puts $sol.to_s if $verbose
+	end
 end	
 
-#Checks if using the option option at the depth is valid or not
+#Checks if using the option at the depth is valid or not
 def valid(depth,option,sol)
-	ram = insert($base,sol)
-	puts pretty_color(ram) if $verbose
-	# puts "Solution"
-	# puts sol.to_s
+	ram = merge($puzzle,sol)
+	puts pretty(ram) if $verbose
 	is_valid = true
 	index=$depth_to_possibility_index[depth]
 	r = index/9 # The row of the element
 	c = index%9 # The column of the element
 	m=(r/3)*3+c/3 # The submatrix of the element
 	if col(c,ram).include?(option) || row(r,ram).include?(option) || mini(m,ram).include?(option)
-		#puts "Element " +option.to_s + " row :" + r.to_s + " column:" + c.to_s + " is invalid"
+		# if the element is found in the column, row or sub matrix it is not valid
 		is_valid = false
 	end
 	is_valid
 end
 
-def insert(arr,sol)
+#Returns an array representing a puzzle including the solution so far
+def merge(arr,sol)
 	result =arr.dup
 	sol.each do |k,v|
 		result[$depth_to_possibility_index[k]]=v
@@ -226,40 +207,36 @@ end
 
 #For every element not given create an array with the valid posibilities
 #Checks for uniqueness in rows columns and submatrix
-def create_genes
+def fill_blanks_and_simplify
 	(0..8).each do |r|
-		row_arr = find_not_present(row(r,$base))
+		row_arr = find_not_present(row(r,$puzzle))
 		(0..8).each do |c|
 			#find the not given
 			arr=row_arr.dup
-			if $base[r*9+c] == 0
+			if $puzzle[r*9+c] == 0
 				#eliminate row valid possibilities with presence in 
-				#columns and submatrices
+				#columns (c) and submatrices (m)
 				arr.each_with_index do |e,i|
-					m=(r/3)*3+c/3
-					#puts "m: " + m.to_s 
-					if col(c,$base).include?(e) || mini(m,$base).include?(e)
-						#puts "Not present in row " + r.to_s + " " + row_arr.to_s
-						#puts "choque con col: " + c.to_s
-						puts "delete element " + e.to_s
+					m=(r/3)*3+c/3 
+					if col(c,$puzzle).include?(e) || mini(m,$puzzle).include?(e)
+						puts "Deleting element " + e.to_s if $verbose
 						arr[i]=10
 					end
 				end
 				arr.delete(10)
-				#If it is definite the value simplify the chromosome
+				#If it is definite the value input it in puzzle
 				if arr.length==1
-					$base[r*9+c] = arr[0]
+					$puzzle[r*9+c] = arr[0]
 					$possibilities.delete(r*9+c)
 				else
 					$possibilities[r*9+c]=arr
 				end
 				puts "After filter column and sub " +c.to_s+ " " + arr.to_s
-				puts pretty_color($base)
+				puts pretty($puzzle)
 			end
 		end
 	end
 end
-
 
 #Returns array with the numbers from 1 to 9 that are not in the input array
 def find_not_present(arr)
@@ -279,96 +256,22 @@ def find_not_present(arr)
 	result
 end
 
-# def fitness(chromo)
-# 	# evaluates the fitness of the chromosome
-# 	# fitness is the number of checks passed max 18.
-# 	#stop when finding 18 checks
-# 	value=0
-# 	(0..8).each do |i|
-# 		if find_not_present(col(i,chromo)).length == 0
-# 			value+=1
-# 		end
-# 		if find_not_present(mini(i,chromo)).length == 0
-# 			value+=1
-# 		end
-# 	end
-# 	value
-# end
-
-# def merge(arr_into, arr )
-# 	#CHECK THE NUMBER OF ZEROS CORRESPOND
-# 	result=arr_into.dup
-# 	j=0
-# 	result.each_with_index do |e, i|
-# 		if e == 0
-# 			result[i] = arr[j]
-# 			j+=1
-# 		end
-# 	end
-# 	result
-# end
-
-# def next_generation
-# 	ram_population=[]
-# 	# create a new generation of the same size as the previous one
-# 	create_roulette
-# 	while ram_population.length < $n do 
-# 		chromo1=pick_chromo
-# 		chromo2=pick_chromo
-# 		new_chromo1=chromo1
-# 		new_chromo2=chromo2
-# 		# not everytime there is recombination
-# 		if recombination?
-# 			new_chromo1=recombinate(chromo1,chromo2)
-# 			new_chromo2=recombinate(chromo2,chromo1)
-# 		end
-# 		ram_population << new_chromo1
-# 		ram_population << new_chromo2
-# 	end
-# 	$population = ram_population
-# 	puts "GENERATION: " + $generation.to_s
-# 	puts "Time elapsed: " + (Time.now - $start_time).to_s + " s"
-# end
-
-# # Create the population
-# def new_population
-# 	(0..($n-1)).each do |i|
-# 		puts "Create chromosome " + i.to_s if $verbose
-# 		$population[i] = create_chromosome
-# 		$population_fitness[i]= 1
-# 	end
-# end	
-
-# #create the probability of selection based on the fitness
-# def create_roulette
-# 	$roulette=[]
-# 	$population_fitness.each_with_index do |f,i|
-# 		if f > 0
-# 			(1..f).each do |j|
-# 				$roulette << i
-# 			end
-# 		end
-# 	end
-# end
-
-#Pick a member of the population the probability if proportional to the fitness
-# def pick_chromo
-# 	index=rand($roulette.length)
-# 	chromo=$population[$roulette[index]]
-# 	chromo
-# end
-
-def pretty(arr)
-	(0..8).each do |i|
-		puts row(i,arr).to_s
-	end
-	nil
+#returns an array corresponding submatrix k (0..8)
+def mini(k, arr)
+	#find the index
+	first=k/3*27+(k%3)*3
+	second=first+9
+	third=first+18
+	result=[]
+	result=arr[first..(first+2)]+arr[second..(second+2)]+arr[third..(third+2)]
 end
-def pretty_color(arr)
+
+#Prints the puzzle. Shows in green the originally not given values
+def pretty(arr)
 	(0..8).each do |i|
 		print "["
 		(0..8).each do |j|
-			if $baset[i*9+j] == 0
+			if $original_puzzle[i*9+j] == 0
 				print "\033[42m #{arr[i*9+j]} \033[0m"
 			else
 				print " #{arr[i*9+j]} "
@@ -379,84 +282,34 @@ def pretty_color(arr)
 	nil
 end
 
-
-# def recombinate(chromo1,chromo2)
-# 	#create a child
-# 	# random point in the sequence to recombinate
-# 	#gene index of crossing
-# 	g=rand(8)
-# 	# first half is from chromo1
-# 	# second half is from chromo 2
-# 	f=chromo1[0..(9*(g+1)-1)]
-# 	s=chromo2[(9*(g+1))..80]
-# 	result=f + s
-# 	result
-# end
-
-# #Recombinate with a probability of 0.7
-# def recombination?
-# 	if rand(10) >= 1
-# 		true
-# 	else
-# 		false
-# 	end
-# end
-
 #returns an array corresponding to row j
 def row(j,arr)
 	result =arr[(j*9)..(j*9+8)]
 end
 
-# # Scramble the order of the possible unknowns
-# def scramble(arr)
-# 	n=arr.length
-# 	copy=arr.dup
-# 	(0..(n-1)).each do |i|
-# 		exchange_index=rand(n)
-# 		ram=copy[i]
-# 		copy[i]=copy[exchange_index]
-# 		copy[exchange_index]=ram
-# 	end
-# 	copy
-# end
 #####################################################################
 ################### Execution of the algorithm #######################
 #####################################################################
 
-create_genes
 previous_unknowns=calculate_unknowns 
-
 current_unknowns = calculate_unknowns - 1
 number_of_loops = 0
+#will loop fill_blanks_and_simplify until it can not reduce any more the 
+#unknowns. 
 while previous_unknowns > current_unknowns do
 	previous_unknowns = calculate_unknowns
-	puts "Number of unknowns before: " + previous_unknowns.to_s
-	create_genes
-	current_unknowns = calculate_unknowns
-	puts "Number of unknowns after: " + current_unknowns.to_s
-	puts $possibilities.to_s
+	puts "Number of unknowns before: " + previous_unknowns.to_s if $verbose
+	fill_blanks_and_simplify
+	current_unknowns = calculate_unknowns 
+	puts "Number of unknowns after: " + current_unknowns.to_s if $verbose
+	puts $possibilities.to_s if $verbose
 	number_of_loops += 1
 	puts "number of loops: " + number_of_loops.to_s
 end
 
-backtrace
+#after start the backtracking algoritm
+backtracking
 end_time=Time.now
 elapsed_time= end_time-$start_time
-puts "took " + elapsed_time.to_s + "seconds"
+puts "Took " + elapsed_time.to_s + " seconds"
 
-exit
-
-# $best_fit=0
-# $generation=0
-# new_population
-# puts $population.to_s if $verbose
-
-
-
-
-# puts "THE SOLUTION"
-# puts "Number of unknows: " + $gene.flatten.length.to_s
-# puts "Individuals: " + $n.to_s
-# puts "Generations: " + ($generation-1).to_s
-# puts pretty_color($solution)
-# puts "took " + elapsed_time.to_s + "seconds"
