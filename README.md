@@ -1,6 +1,12 @@
 #Sudoku puzzle solver
 ## Instructions of use
-run ruby sudoku.rb FILENAME -v
+In the terminal type: 
+ruby sudoku.rb FILENAME -v
+
+for example:
+ruby sudoku.rb input1.csv
+
+
 FILENAME should be a .csv file containing the initial puzzle as follows:
 
 0,3,5,2,9,0,8,6,4,<br/>
@@ -15,7 +21,7 @@ FILENAME should be a .csv file containing the initial puzzle as follows:
 
 where the zeros represent the empty slots.
 
-##Algorithm used.
+##Algorithm used
 The program stores all the possible answers of unknowns (zeros) in a hash.
 It starts by checking the row then look if it contradicts column or submatrix rules.
 In this way it can simplify the options for every slot. If there is only one option it modifies the puzzle accordingly.
