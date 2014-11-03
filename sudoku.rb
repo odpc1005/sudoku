@@ -175,6 +175,7 @@ def backtracking
 		puts "THE SOLUTION"
 		ram = merge($puzzle,$sol)
 		pretty(ram)
+		write_to_file(ram)
 		puts "solution hash key:depth value: number" if $verbose
 		puts $sol.to_s if $verbose
 	end
@@ -287,6 +288,17 @@ def row(j,arr)
 	result =arr[(j*9)..(j*9+8)]
 end
 
+#Write answer to csv
+def write_to_file(arr)
+	File.open("output.csv","w") do |f|
+		(0..8).each do |r|
+			(0..8).each do |c|
+				f.write(arr[r*9+c].to_s+",")
+			end
+			f.write("\n")
+		end
+	end
+end
 #####################################################################
 ################### Execution of the algorithm #######################
 #####################################################################
@@ -309,6 +321,7 @@ end
 
 #after start the backtracking algoritm
 backtracking
+
 end_time=Time.now
 elapsed_time= end_time-$start_time
 puts "Took " + elapsed_time.to_s + " seconds"
