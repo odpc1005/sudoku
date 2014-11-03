@@ -65,6 +65,7 @@ if !valid_file
 end 
 
 $base = $baset.flatten
+$baset= $base.dup
 
 # $base=[0,3,5,2,9,0,8,6,4,
 # 		0,8,2,4,1,0,7,0,3,
@@ -101,6 +102,7 @@ $gene =[]
 #Used to create the probability of being chosen proportional to
 #the fitness
 $roulette=[]
+$possibilities={}
 
 ########### FUNCTIONS IMPLEMENTATIONS #############
 
@@ -120,6 +122,14 @@ def calculate_fit
 		end
 		$population_fitness[i] = current_fitness
 	end
+end
+
+def calculate_unknowns
+	length=0
+	$possibilities.each do |k, v|
+		length += v.length
+	end
+	length
 end
 
 #returns an array corresponding to column i
@@ -159,12 +169,41 @@ def create_chromosome
 
 end
 
-def create_genes
-	(0..8).each do |i|
-		$gene[i] = find_not_present(row(i,$base))
-	end
 
+def create_genes
+	(0..8).each do |r|
+		row_arr = find_not_present(row(r,$base))
+		(0..8).each do |c|
+			#find the not given
+			arr=row_arr.dup
+			if $base[r*9+c] == 0
+				#eliminate row valid possibilities with presence in 
+				#columns and submatrices
+				arr.each_with_index do |e,i|
+					m=(r/3)*3+c/3
+					#puts "m: " + m.to_s 
+					if col(c,$base).include?(e) || mini(m,$base).include?(e)
+						#puts "Not present in row " + r.to_s + " " + row_arr.to_s
+						#puts "choque con col: " + c.to_s
+						puts "delete element " + e.to_s
+						arr[i]=10
+					end
+				end
+				arr.delete(10)
+				#If it is definite the value simplify the chromosome
+				if arr.length==1
+					$base[r*9+c] = arr[0]
+					$possibilities.delete(r*9+c)
+				else
+					$possibilities[r*9+c]=arr
+				end
+				puts "After filter column and sub " +c.to_s+ " " + arr.to_s
+				puts pretty_color($base)
+			end
+		end
+	end
 end
+
 
 #Returns array with the numbers from 1 to 9 that are not in the input array
 def find_not_present(arr)
@@ -273,7 +312,7 @@ def pretty_color(arr)
 	(0..8).each do |i|
 		print "["
 		(0..8).each do |j|
-			if $base[i*9+j] == 0
+			if $baset[i*9+j] == 0
 				print "\033[42m #{arr[i*9+j]} \033[0m"
 			else
 				print " #{arr[i*9+j]} "
@@ -323,10 +362,33 @@ end
 ################### Execution of the algorithm #######################
 #####################################################################
 create_genes
+previous_unknowns=calculate_unknowns 
+
+current_unknowns = calculate_unknowns - 1
+number_of_loops = 0
+while previous_unknowns > current_unknowns do
+	previous_unknowns = calculate_unknowns
+	puts "Number of unknowns before: " + previous_unknowns.to_s
+	create_genes
+	current_unknowns = calculate_unknowns
+	puts "Number of unknowns after: " + current_unknowns.to_s
+	puts $possibilities.to_s
+	number_of_loops += 1
+	puts "number of loops: " + number_of_loops.to_s
+end
+puts pretty_color($base)
+
 $best_fit=0
 $generation=0
 new_population
 puts $population.to_s if $verbose
+puts "THE SOLUTION"
+puts "Number of unknows: " + $gene.flatten.length.to_s
+puts "Individuals: " + $n.to_s
+puts "Generations: " + ($generation-1).to_s
+puts pretty_color($base)
+
+
 
 while $best_fit < 18 do 
 	next_generation
