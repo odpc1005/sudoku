@@ -23,6 +23,7 @@ In this way it can simplify the options for every slot. If there is only one opt
 Depending on the puzzle given this methodic simplification wont continue. In that case the program would start 
 a backtracing algorithm starting with the simplified puzzle.
 There are two parameters for the algoritm: depth and current_option.
+
 1. start at depth zero
 2. choose the first option at that depth
 3. if it is valid choose the option, update current_option and increase depth
