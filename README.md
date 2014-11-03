@@ -21,6 +21,8 @@ FILENAME should be a .csv file containing the initial puzzle as follows:
 
 where the zeros represent the empty slots.
 
+The program will print the solution to the console and also output the solution to output.csv
+
 ##Algorithm used
 The program stores all the possible answers of unknowns (zeros) in a hash.
 It starts by checking the row then look if it contradicts column or submatrix rules.
