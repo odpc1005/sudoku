@@ -16,12 +16,12 @@ FILENAME should be a .csv file containing the initial puzzle as follows:
 where the zeros represent the empty slots.
 
 ##Algorithm used.
-The program stores all the possible answers of not given in a hash.
+The program stores all the possible answers of unknowns (zeros) in a hash.
 It starts by checking the row then look if it contradicts column or submatrix rules.
 In this way it can simplify the options for every slot. If there is only one option it modifies the puzzle accordingly.
 
-Depending on the puzzle given this methodic simplification wont continue. In that case the program would start 
-a backtracing algorithm starting with the simplified puzzle.
+Depending on the puzzle given this methodic simplification won't continue. In that case the program would start 
+a backtracking algorithm starting with the simplified puzzle.
 There are two parameters for the algoritm: depth and current_option.
 
 1. start at depth zero
