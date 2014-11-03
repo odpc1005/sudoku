@@ -3,10 +3,8 @@
 run ruby sudoku_backtrack.rb FILENAME -v
 FILENAME should be a .csv file containing the initial puzzle as follows:
 
-0,3,5,2,9,0,8,6,4,
-
+0,3,5,2,9,0,8,6,4,<br/>
 0,8,2,4,1,0,7,0,3,
-
 7,6,4,3,8,0,0,9,0,
 
 2,1,8,7,3,9,0,4,0,
